@@ -90,9 +90,9 @@ oboe::Result HelloOboeEngine::openPlaybackStream() {
         ->setFormatConversionAllowed(true)
         ->setDataCallback(mLatencyCallback)
         ->setErrorCallback(mErrorCallback)
-        ->setAudioApi(mAudioApi)
+        ->setAudioApi(oboe::AudioApi::Unspecified)
         ->setChannelCount(mChannelCount)
-        ->setDeviceId(mDeviceId)
+        ->setDeviceId(oboe::kUnspecified)
         ->openStream(mStream);
     if (result == oboe::Result::OK) {
         mChannelCount = mStream->getChannelCount();
@@ -107,9 +107,9 @@ void HelloOboeEngine::restart() {
 }
 
 oboe::Result HelloOboeEngine::start(oboe::AudioApi audioApi, int deviceId, int channelCount) {
-    mAudioApi = audioApi;
-    mDeviceId = deviceId;
-    mChannelCount = channelCount;
+//    mAudioApi = audioApi;
+//    mDeviceId = deviceId;
+//    mChannelCount = channelCount;
     return start();
 }
 

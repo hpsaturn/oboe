@@ -86,9 +86,9 @@ private:
     std::shared_ptr<SoundGenerator> mAudioSource;
     bool mIsLatencyDetectionSupported = false;
 
-    int32_t        mDeviceId = oboe::Unspecified;
+//    int32_t        mDeviceId = oboe::Unspecified;
     int32_t        mChannelCount = oboe::Unspecified;
-    oboe::AudioApi mAudioApi = oboe::AudioApi::Unspecified;
+//    oboe::AudioApi mAudioApi = oboe::AudioApi::Unspecified;
     std::mutex     mLock;
 };
 

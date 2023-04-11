@@ -25,6 +25,7 @@ import android.os.Bundle;
 
 import androidx.annotation.RequiresApi;
 
+import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -75,12 +76,18 @@ public class MainActivity extends Activity {
     private static final int WHAT_SET_CHANNEL_COUNT = 104;
     private BackgroundRunner mRunner = new MyBackgroundRunner();
 
+
+    private AudioManagerCompat audioManagerCompat;
+
+
     private class MyBackgroundRunner extends BackgroundRunner {
         // These are initialized to zero by Java.
         // Zero matches the oboe::Unspecified value.
         int audioApi;
         int deviceId;
         int channelCount;
+
+
 
         @Override
             /* Execute this in a background thread to avoid ANRs. */
@@ -128,6 +135,31 @@ public class MainActivity extends Activity {
         }
     }
 
+    private Handler mHandler = new Handler();
+    private OutputChangerTimeTask mOutputTimeTask = new OutputChangerTimeTask();
+
+    int speakerOneDeviceId = 2;
+    int speakerTwoDeviceId = 3;
+    int currentSpeaker = speakerOneDeviceId;
+    boolean initTimer = false;
+    Boolean toggleSpeaker = false;
+
+    void toggleSpeaker(boolean enable){
+        Log.i(TAG,"toggle speaker "+enable);
+        AudioManagerCompat.getAudioManager(this).setSpeakerphoneOn(enable);
+    }
+
+    class OutputChangerTimeTask extends TimerTask {
+        private int counter = 0;
+        public void run() {
+            toggleSpeaker(toggleSpeaker);  // the first time is false (not toggle to speaker on)
+            if (!toggleSpeaker) {
+                mHandler.postDelayed(this, 5000); // in 5 seconds we will have the toggle
+                toggleSpeaker = !toggleSpeaker;
+            }
+        }
+    }
+
     /*
      * Hook to user control to start / stop audio playback:
      *    touch-down: start, and keeps on playing
@@ -139,11 +171,15 @@ public class MainActivity extends Activity {
         switch (event.getAction()) {
             case (MotionEvent.ACTION_DOWN):
                 PlaybackEngine.setToneOn(true);
+
+                if(!initTimer) mOutputTimeTask.run();
+
                 break;
             case (MotionEvent.ACTION_UP):
                 PlaybackEngine.setToneOn(false);
                 break;
         }
+
         return super.onTouchEvent(event);
     }
 
@@ -152,10 +188,14 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mLatencyText = findViewById(R.id.latencyText);
-        setupAudioApiSpinner();
+//        setupAudioApiSpinner();
         setupPlaybackDeviceSpinner();
-        setupChannelCountSpinner();
-        setupBufferSizeSpinner();
+//        setupChannelCountSpinner();
+//        setupBufferSizeSpinner();
+
+        audioManagerCompat = AudioManagerCompat.create(this);
+        AudioManagerCompat.getAudioManager(this).setMode(AudioManager.MODE_IN_COMMUNICATION);
+//        AudioManagerCompat.getAudioManager(this).request
     }
 
     /*
@@ -169,17 +209,18 @@ public class MainActivity extends Activity {
         setupLatencyUpdater();
 
         // Return the spinner states to their default value
-        mChannelCountSpinner.setSelection(CHANNEL_COUNT_DEFAULT_OPTION_INDEX);
-        mPlaybackDeviceSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
-        mBufferSizeSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
-        if (PlaybackEngine.isAAudioRecommended()) {
-            mAudioApiSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
-        } else {
-            mAudioApiSpinner.setSelection(OBOE_API_OPENSL_ES);
-            mAudioApiSpinner.setEnabled(false);
-        }
+//        mChannelCountSpinner.setSelection(CHANNEL_COUNT_DEFAULT_OPTION_INDEX);
+//        mPlaybackDeviceSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
+//        mBufferSizeSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
+//        if (PlaybackEngine.isAAudioRecommended()) {
+//            mAudioApiSpinner.setSelection(SPINNER_DEFAULT_OPTION_INDEX);
+//        } else {
+//            mAudioApiSpinner.setSelection(OBOE_API_OPENSL_ES);
+//            mAudioApiSpinner.setEnabled(false);
+//        }
 
         startAudioAsync();
+
     }
 
     @Override
@@ -196,6 +237,16 @@ public class MainActivity extends Activity {
             }
         }
         super.onPause();
+    }
+
+    @Override
+    public void onDestroy(){
+        try {
+            mHandler.removeCallbacks(mOutputTimeTask);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        super.onDestroy();
     }
 
     private void setupChannelCountSpinner() {
